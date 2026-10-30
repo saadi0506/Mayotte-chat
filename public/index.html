@@ -1,0 +1,479 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MAYOTTE CHAT</title>
+<style>
+:root {
+ --green:#075e54; --blue:#087f9c; --bg:#f1f5f7;
+ --white:#fff; --text:#183b38; --muted:#81918f;
+}
+* {box-sizing:border-box}
+body {margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,textarea {font:inherit}
+button {cursor:pointer;border:0;border-radius:10px;padding:11px 15px;background:var(--green);color:white;font-weight:bold}
+button:hover {opacity:.88}
+header {height:72px;background:var(--green);color:white;display:flex;align-items:center;justify-content:space-between;padding:0 25px}
+.logo {font-size:23px;font-weight:800;letter-spacing:.5px}
+.layout {display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 72px)}
+aside {background:#fff;padding:25px 15px;border-right:1px solid #e5ebeb}
+.nav {display:block;width:100%;text-align:left;margin:7px 0;background:transparent;color:#526663;padding:14px}
+.nav.active,.nav:hover {background:#e8f4f1;color:var(--green)}
+main {padding:30px;max-width:1100px;width:100%;margin:auto}
+.panel {display:none}.panel.active {display:block}
+.card {background:white;border-radius:18px;padding:22px;margin-bottom:18px;box-shadow:0 8px 28px #173b380a}
+h1 {font-size:28px;margin:0 0 8px}
+.muted {color:var(--muted)}
+.stats {display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:22px 0}
+.stat strong {display:block;font-size:28px;color:var(--green);margin-top:10px}
+input,textarea {width:100%;padding:13px;border:1px solid #dce5e3;border-radius:10px;margin:8px 0;outline-color:var(--blue)}
+.person {display:flex;align-items:center;gap:13px;padding:14px 0;border-bottom:1px solid #edf0ef}
+.avatar {width:43px;height:43px;border-radius:50%;background:#d9eee8;display:grid;place-items:center;font-size:20px}
+.person-info {flex:1;min-width:0}
+.person-info strong {display:block}
+.person-info small {color:var(--muted)}
+.row {display:flex;gap:8px;align-items:center}
+.row input {flex:1;min-width:0}
+#messages {height:300px;overflow:auto;background:#f5f8f7;border-radius:12px;padding:12px}
+.message {padding:12px;background:#e4f5ed;border-radius:12px;margin:9px 0;overflow-wrap:anywhere}
+#auth {max-width:440px;margin:60px auto}
+#dashboard {display:none}
+#auth .card {padding:30px}
+#auth button {width:100%;margin-top:10px}
+#chatForm {display:flex;gap:8px;margin-top:10px}
+#chatForm input {flex:1;min-width:0}
+@media(max-width:700px){
+ .layout{grid-template-columns:1fr}
+ aside{display:flex;overflow-x:auto;padding:8px;position:sticky;top:0;z-index:2}
+ .nav{white-space:nowrap;width:auto;margin:0;padding:12px}
+ main{padding:15px}
+ .stats{grid-template-columns:1fr}
+ header{padding:0 15px}
+}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="logo">🌴 MAYOTTE CHAT</div>
+ <div id="headerUser">Bienvenue</div>
+</header>
+
+<section id="auth">
+ <div class="card">
+  <h1>Bienvenue !</h1>
+  <p class="muted">Connectez-vous à votre communauté.</p>
+  <div class="row">
+   <button onclick="setMode('login')">Connexion</button>
+   <button onclick="setMode('register')">Inscription</button>
+  </div>
+  <form id="authForm">
+   <input id="username" placeholder="Pseudo ou identifiant" required>
+   <input id="email" type="email" placeholder="Adresse e-mail" style="display:none">
+   <input id="password" type="password" placeholder="Mot de passe" minlength="10" required>
+   <button id="authButton">Se connecter</button>
+  </form>
+  <p id="authError"></p>
+ </div>
+</section>
+
+<section id="dashboard">
+ <div class="layout">
+  <aside>
+   <button class="nav active" data-page="home">🏠 Accueil</button>
+   <button class="nav" data-page="discover">🌍 Découvrir</button>
+   <button class="nav" data-page="friends">👥 Mes amis</button>
+   <button class="nav" data-page="requests">✉️ Invitations</button>
+   <button class="nav" data-page="chat">💬 Salon général</button>
+   <button class="nav" data-page="private">✉️ Messages privés</button>
+   <button class="nav" data-page="profile">👤 Mon profil</button>
+   <button class="nav" id="logout">↪ Déconnexion</button>
+  </aside>
+
+  <main>
+   <section class="panel active" id="home">
+    <h1>Bonjour <span id="homeName"></span> 👋</h1>
+    <p class="muted">Bienvenue dans votre espace MAYOTTE CHAT.</p>
+    <div class="stats">
+     <div class="card stat">Membres inscrits<strong id="memberCount">—</strong></div>
+     <div class="card stat">Mes amis<strong id="friendCount">0</strong></div>
+     <div class="card stat">Invitations reçues<strong id="requestCount">0</strong></div>
+    </div>
+    <div class="card">
+     <h3>Votre communauté 🌴</h3>
+     <p class="muted">Retrouvez des membres et développez votre réseau.</p>
+     <button onclick="navigate('discover')">Découvrir les membres</button>
+    </div>
+   </section>
+
+   <section class="panel" id="discover">
+    <h1>Découvrir 🌍</h1>
+    <p class="muted">Recherchez les membres de MAYOTTE CHAT.</p>
+    <div class="row">
+     <input id="search" placeholder="Rechercher un pseudo...">
+     <button onclick="searchUsers()">Rechercher</button>
+    </div>
+    <div class="card" id="userResults"></div>
+   </section>
+
+   <section class="panel" id="friends">
+    <h1>Mes amis 👥</h1>
+    <div class="card" id="friendList"></div>
+   </section>
+
+   <section class="panel" id="requests">
+    <h1>Invitations ✉️</h1>
+    <div class="card" id="requestList"></div>
+   </section>
+
+   <section class="panel" id="chat">
+    <h1>Salon général 💬</h1>
+    <p class="muted">Attention : les messages de ce salon sont visibles par tous les membres connectés.</p>
+    <div class="card">
+     <div id="messages"></div>
+     <form id="chatForm">
+      <input id="message" placeholder="Écrire un message..." maxlength="2000" required>
+      <button>Envoyer</button>
+     </form>
+    </div>
+   </section>
+
+   <section class="panel" id="private">
+    <h1>✉️ Mes conversations</h1>
+    <div class="card">
+      <div id="conversationList">Chargement...</div>
+    </div>
+    <div class="card" id="privateBox" style="display:none">
+      <h3 id="privateTitle"></h3>
+      <div id="privateMessages" style="height:350px;overflow:auto"></div>
+      <form id="privateForm" class="row">
+        <input id="privateInput" placeholder="Votre message..." maxlength="2000" required>
+        <button>Envoyer</button>
+      </form>
+    </div>
+   </section>
+
+   <section class="panel" id="profile">
+    <h1>Mon profil 👤</h1>
+    <div class="card">
+     <h3 id="profileName"></h3>
+     <p id="profileEmail" class="muted"></p>
+     <label>Ma biographie</label>
+     <textarea id="bio" maxlength="300" rows="4" placeholder="Parlez de vous..."></textarea>
+     <button onclick="saveProfile()">Enregistrer mon profil</button>
+     <p id="profileResult"></p>
+    </div>
+   </section>
+  </main>
+ </div>
+</section>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let mode = "login", socket;
+
+function setMode(m) {
+ mode = m;
+ $("email").style.display = m === "register" ? "block" : "none";
+ $("email").required = m === "register";
+ $("username").placeholder = m === "login" ? "Pseudo ou adresse e-mail" : "Choisir un pseudo";
+ $("authButton").textContent = m === "login" ? "Se connecter" : "Créer mon compte";
+ $("authError").textContent = "";
+}
+
+async function api(url, options={}) {
+ const response = await fetch(url, {
+  ...options,
+  headers: {"Content-Type":"application/json",...(options.headers||{})}
+ });
+ const data = await response.json();
+ if (!response.ok) throw new Error(data.error || "Une erreur est survenue.");
+ return data;
+}
+
+$("authForm").onsubmit = async e => {
+ e.preventDefault();
+ try {
+  const data = mode === "login"
+   ? await api("/api/login",{method:"POST",body:JSON.stringify({identifier:$("username").value,password:$("password").value})})
+   : await api("/api/register",{method:"POST",body:JSON.stringify({username:$("username").value,email:$("email").value,password:$("password").value})});
+  enter(data.username);
+ } catch(err) {$("authError").textContent=err.message;}
+};
+
+async function enter(username) {
+ $("auth").style.display="none";
+ $("dashboard").style.display="block";
+ $("headerUser").textContent="👤 "+username;
+ $("homeName").textContent=username;
+ $("profileName").textContent=username;
+ await loadProfile();
+ await refreshStats();
+ searchUsers();
+}
+
+
+let activeFriend = null;
+
+async function loadConversations() {
+ const box = $("conversationList");
+ box.replaceChildren();
+
+ try {
+  const conversations = await api("/api/conversations");
+
+  if (!conversations.length) {
+   box.textContent = "Ajoutez des amis pour commencer à discuter.";
+   return;
+  }
+
+  conversations.forEach(c => {
+   const row = document.createElement("div");
+   row.className = "person";
+
+   const info = document.createElement("div");
+   info.className = "person-info";
+
+   const name = document.createElement("strong");
+   name.textContent = c.friend.username;
+
+   const preview = document.createElement("small");
+   preview.textContent = c.lastMessage || "Nouvelle conversation";
+
+   const button = document.createElement("button");
+   button.textContent = c.unread ? "Ouvrir (" + c.unread + ")" : "Ouvrir";
+   button.onclick = () => openPrivate(c.friend);
+
+   info.append(name, preview);
+   row.append(info, button);
+   box.append(row);
+  });
+
+ } catch(e) {
+  box.textContent = e.message;
+ }
+}
+
+async function openPrivate(friend) {
+ activeFriend = friend;
+
+ $("privateBox").style.display = "block";
+ $("privateTitle").textContent = "Discussion avec " + friend.username;
+ $("privateMessages").replaceChildren();
+
+ connectChat();
+
+ try {
+  const messages = await api("/api/messages/" + encodeURIComponent(friend.id));
+
+  messages.forEach(addPrivateMessage);
+
+  await api("/api/messages/" + encodeURIComponent(friend.id) + "/read", {
+   method: "POST"
+  });
+
+  await loadConversations();
+
+ } catch(e) {
+  alert(e.message);
+ }
+}
+
+function addPrivateMessage(data) {
+ const box = document.createElement("div");
+ box.className = "message";
+
+ const title = document.createElement("strong");
+ title.textContent = data.sender_id === activeFriend.id
+  ? activeFriend.username
+  : "Vous";
+
+ const content = document.createElement("p");
+ content.textContent = data.content;
+
+ const date = document.createElement("small");
+ date.textContent = data.created_at || "";
+
+ box.append(title, content, date);
+ $("privateMessages").append(box);
+ $("privateMessages").scrollTop = $("privateMessages").scrollHeight;
+}
+
+$("privateForm").onsubmit = async e => {
+ e.preventDefault();
+
+ if (!activeFriend) return;
+
+ const content = $("privateInput").value.trim();
+ if (!content) return;
+
+ try {
+  const message = await api(
+   "/api/messages/" + encodeURIComponent(activeFriend.id),
+   {
+    method: "POST",
+    body: JSON.stringify({content})
+   }
+  );
+
+  addPrivateMessage(message);
+  $("privateInput").value = "";
+  await loadConversations();
+
+ } catch(err) {
+  alert(err.message);
+ }
+};
+
+function navigate(page) {
+ document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+ $(page).classList.add("active");
+ document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+ if(page==="friends") loadFriends();
+ if(page==="private") loadConversations();
+ if(page==="requests") loadRequests();
+ if(page==="discover") searchUsers();
+ if(page==="chat") connectChat();
+}
+
+document.querySelectorAll(".nav[data-page]").forEach(b=>b.onclick=()=>navigate(b.dataset.page));
+
+async function refreshStats() {
+ const [friends,requests,users]=await Promise.all([
+  api("/api/friends"),api("/api/friends/requests"),api("/api/users")
+ ]);
+ $("friendCount").textContent=friends.length;
+ $("requestCount").textContent=requests.length;
+ $("memberCount").textContent=users.length+1;
+}
+
+async function searchUsers() {
+ try {
+  const q=encodeURIComponent($("search").value||"");
+  const users=await api("/api/users?q="+q);
+  $("userResults").replaceChildren();
+  if(!users.length) {$("userResults").textContent="Aucun membre trouvé.";return;}
+  users.forEach(u=>{
+   const row=document.createElement("div");row.className="person";
+   const avatar=document.createElement("div");avatar.className="avatar";avatar.textContent="🌴";
+   const info=document.createElement("div");info.className="person-info";
+   const name=document.createElement("strong");name.textContent=u.username;
+   const bio=document.createElement("small");bio.textContent=u.bio||"Membre de MAYOTTE CHAT";
+   info.append(name,bio);
+   const action=document.createElement("button");
+   if(u.isFriend){action.textContent="Déjà ami";action.disabled=true;}
+   else if(u.requestSent){action.textContent="Demande envoyée";action.disabled=true;}
+   else if(u.requestReceived){action.textContent="Voir invitation";action.onclick=()=>navigate("requests");}
+   else {action.textContent="Ajouter";action.onclick=()=>sendRequest(u.id);}
+   row.append(avatar,info,action);$("userResults").append(row);
+  });
+ } catch(e) {$("userResults").textContent=e.message;}
+}
+
+async function sendRequest(id) {
+ try {await api("/api/friends/request/"+id,{method:"POST"});await searchUsers();await refreshStats();}
+ catch(e){alert(e.message);}
+}
+
+async function loadFriends() {
+ const friends=await api("/api/friends");
+ renderPeople("friendList",friends);
+}
+
+async function loadRequests() {
+ const requests=await api("/api/friends/requests");
+ const box=$("requestList");box.replaceChildren();
+ if(!requests.length){box.textContent="Aucune invitation pour le moment.";return;}
+ requests.forEach(u=>{
+  const row=document.createElement("div");row.className="person";
+  const info=document.createElement("div");info.className="person-info";
+  const name=document.createElement("strong");name.textContent=u.username;
+  info.append(name);
+  const accept=document.createElement("button");accept.textContent="Accepter";
+  accept.onclick=()=>friendAction(u.id,"accept");
+  const reject=document.createElement("button");reject.textContent="Refuser";reject.style.background="#777";
+  reject.onclick=()=>friendAction(u.id,"reject");
+  row.append(info,accept,reject);box.append(row);
+ });
+}
+
+function renderPeople(id,list) {
+ const box=$(id);box.replaceChildren();
+ if(!list.length){box.textContent="Aucun ami pour le moment.";return;}
+ list.forEach(u=>{
+  const row=document.createElement("div");row.className="person";
+  const avatar=document.createElement("div");avatar.className="avatar";avatar.textContent="🌴";
+  const info=document.createElement("div");info.className="person-info";
+  const name=document.createElement("strong");name.textContent=u.username;
+  const bio=document.createElement("small");bio.textContent=u.bio||"Membre";
+  info.append(name,bio);row.append(avatar,info);box.append(row);
+ });
+}
+
+async function friendAction(id,action) {
+ try {await api("/api/friends/"+id+"/"+action,{method:"POST"});await loadRequests();await refreshStats();await loadFriends();}
+ catch(e){alert(e.message);}
+}
+
+async function loadProfile() {
+ const u=await api("/api/me");
+ $("profileEmail").textContent=u.email;
+ $("bio").value=u.bio||"";
+}
+
+async function saveProfile() {
+ try {await api("/api/profile",{method:"PATCH",body:JSON.stringify({bio:$("bio").value})});$("profileResult").textContent="Profil enregistré !";}
+ catch(e){$("profileResult").textContent=e.message;}
+}
+
+function connectChat() {
+ if(socket) return;
+ socket=io();
+
+ socket.on("private message", data => {
+  if(activeFriend &&
+    (data.sender_id === activeFriend.id ||
+     data.receiver_id === activeFriend.id)) {
+
+   addPrivateMessage(data);
+
+   if(data.sender_id === activeFriend.id) {
+    api("/api/messages/" + encodeURIComponent(activeFriend.id) + "/read", {
+     method: "POST"
+    }).catch(console.error);
+   }
+  }
+
+  loadConversations();
+ });
+ socket.on("chat message",data=>{
+  const box=document.createElement("div");box.className="message";
+  const title=document.createElement("strong");title.textContent=data.username+" • "+data.date;
+  const content=document.createElement("p");content.textContent=data.message;
+  box.append(title,content);$("messages").append(box);
+  $("messages").scrollTop=$("messages").scrollHeight;
+ });
+}
+
+$("chatForm").onsubmit=e=>{
+ e.preventDefault();
+ const message=$("message").value.trim();
+ if(message&&socket&&socket.connected){socket.emit("chat message",{message});$("message").value="";}
+};
+
+$("logout").onclick=async()=>{
+ if(socket)socket.disconnect();
+ await fetch("/api/logout",{method:"POST"});
+ location.reload();
+};
+
+async function checkSession() {
+ try {const r=await fetch("/api/me");if(r.ok){const u=await r.json();await enter(u.username);}}
+ catch(e){console.log(e);}
+}
+checkSession();
+</script>
+</body>
+</html>
